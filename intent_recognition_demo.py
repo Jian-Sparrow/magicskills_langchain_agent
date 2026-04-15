@@ -34,7 +34,7 @@ print()
 
 # MagicSkills API 地址（容器内部）
 # Docker容器内API运行在5000端口
-API_BASE = "http://localhost:5000"  # 容器内部API
+API_BASE = "http://localhost:5001"  # 容器内部API
 # 主机调用: API_BASE = "http://localhost:5002"
 
 def _make_skill_tool(api_base: str):
