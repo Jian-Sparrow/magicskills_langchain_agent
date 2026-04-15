@@ -32,10 +32,10 @@ print(f"LLM Model: {os.getenv('OPENAI_MODEL')}")
 print(f"LLM Base URL: {os.getenv('OPENAI_BASE_URL')}")
 print()
 
-# MagicSkills API 地址
-# 使用 port 5001（避免 macOS AirPlay 占用 5000）
-API_BASE = "http://localhost:5001"  # 本地 API
-# 或远程 API: API_BASE = "http://your-server-ip:5001"
+# MagicSkills API 地址（容器内部）
+# Docker容器内API运行在5000端口
+API_BASE = "http://localhost:5000"  # 容器内部API
+# 主机调用: API_BASE = "http://localhost:5002"
 
 def _make_skill_tool(api_base: str):
     """

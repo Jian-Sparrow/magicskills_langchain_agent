@@ -13,6 +13,41 @@ description: 从用户文本中提取意图信息并进行分类。Trigger whene
 /intent-recognition "文本内容"
 ```
 
+或者使用Python脚本直接调用：
+
+```bash
+cd skills/intent-recognition/scripts
+pip install -r requirements.txt  # 安装依赖
+python intent_recognition.py "文本内容"
+```
+
+## Setup
+
+确保环境变量已配置（需要在 `~/.env` 或项目根目录的 `.env` 文件中设置）：
+
+```bash
+OPENAI_API_KEY=your_api_key
+OPENAI_BASE_URL=https://your-api-endpoint
+OPENAI_MODEL=your_model_name
+```
+
+**依赖安装：**
+
+```bash
+# 如果使用项目虚拟环境
+cd /path/to/project
+source venv/bin/activate  # 激活虚拟环境
+
+# 安装skill依赖
+cd skills/intent-recognition/scripts
+pip install -r requirements.txt
+```
+
+依赖包括：
+- `langchain-openai` - LangChain OpenAI集成
+- `langchain-core` - LangChain核心模块
+- `python-dotenv` - 环境变量加载
+
 ## Intent Categories (预定义意图体系)
 
 银行金融业务场景的意图分类体系：
@@ -233,12 +268,37 @@ Output: {
 
 ## Workflow
 
+### Claude使用流程
+
 1. **接收文本** - 用户输入待识别文本
 2. **关键词提取** - 识别业务关键词和场景词
 3. **意图匹配** - 匹配到预定义意图类别
 4. **置信度计算** - 根据匹配精度计算置信度
 5. **结果生成** - 输出结构化 JSON 结果
 6. **解释说明** - 提供识别依据和理由
+
+### Python脚本执行流程
+
+如果需要通过脚本执行意图识别：
+
+```bash
+# 进入脚本目录
+cd skills/intent-recognition/scripts
+
+# 安装依赖（首次运行）
+pip install -r requirements.txt
+
+# 执行意图识别
+python intent_recognition.py "我要投诉信用卡盗刷问题"
+
+# 输出JSON结果
+```
+
+脚本会自动：
+1. 加载环境变量配置
+2. 构建意图识别Prompt
+3. 调用LLM进行分析
+4. 返回结构化JSON结果
 
 ---
 

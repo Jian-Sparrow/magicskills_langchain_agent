@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>意图识别 - Web界面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 10px;
+            background: white;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button.clear {
+            background: #f44336;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .api-info {
+            background: #e7f3ff;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .examples {
+            background: #fff3cd;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .example-btn {
+            background: #2196F3;
+            font-size: 12px;
+            padding: 5px 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 意图识别 Web界面</h1>
+
+        <div class="api-info">
+            <strong>API端点:</strong> <code>POST http://localhost:5002/skills/execute</code><br>
+            <strong>服务状态:</strong> <span id="status">检查中...</span>
+        </div>
+
+        <div class="examples">
+            <strong>快速测试示例：</strong><br>
+            <button class="example-btn" onclick="loadExample('我要投诉信用卡盗刷问题')">投诉示例</button>
+            <button class="example-btn" onclick="loadExample('查询上个月的账户流水明细')">查询示例</button>
+            <button class="example-btn" onclick="loadExample('我想申请信用卡，并了解信贷政策')">多意图示例</button>
+            <button class="example-btn" onclick="loadExample('贷款利率怎么样')">模糊意图示例</button>
+        </div>
+
+        <h2>输入文本</h2>
+        <textarea id="inputText" placeholder="输入待识别文本..."></textarea>
+
+        <button onclick="recognizeIntent()">🔍 识别意图</button>
+        <button class="clear" onclick="clearResult()">🗑️ 清除</button>
+
+        <h2>识别结果</h2>
+        <div id="result">等待输入...</div>
+    </div>
+
+    <script>
+        // 检查API健康状态
+        fetch('http://localhost:5002/health')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('status').innerHTML =
+                    `<span style="color: green">✅ 正常 (${data.skills_count} skills)</span>`;
+            })
+            .catch(err => {
+                document.getElementById('status').innerHTML =
+                    `<span style="color: red">❌ 服务不可用 (${err.message})</span>`;
+            });
+
+        function loadExample(text) {
+            document.getElementById('inputText').value = text;
+        }
+
+        function recognizeIntent() {
+            const text = document.getElementById('inputText').value.trim();
+            if (!text) {
+                alert('请输入文本！');
+                return;
+            }
+
+            document.getElementById('result').innerHTML = '⏳ 正在识别...';
+
+            fetch('http://localhost:5002/skills/execute', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    command: `python /app/workspace/skills/allskills/intent-recognition/scripts/intent_recognition.py "${text}"`,
+                    shell: true,
+                    timeout: 30
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const intentData = JSON.parse(data.stdout);
+                    displayResult(intentData);
+                } else {
+                    document.getElementById('result').innerHTML =
+                        `❌ 错误:\n${data.stderr}\n\nCommand: ${data.command}`;
+                }
+            })
+            .catch(err => {
+                document.getElementById('result').innerHTML =
+                    `❌ 网络错误: ${err.message}`;
+            });
+        }
+
+        function displayResult(data) {
+            let html = '';
+
+            if (data.intents) {
+                // 多意图
+                html += `✅ 识别成功!\n\n`;
+                html += `主意图: ${data.primary_intent}\n`;
+                html += `识别到 ${data.intents.length} 个意图:\n`;
+                data.intents.forEach((intent, i) => {
+                    html += `  ${i+1}. ${intent.intent_name} (置信度: ${(intent.confidence*100).toFixed(0)}%)\n`;
+                    html += `     关键词: ${intent.keywords.join(', ')}\n`;
+                });
+                html += `\n理由: ${data.reasoning}`;
+            } else if (data.intent) {
+                // 单意图或未知
+                if (data.intent === 'unknown') {
+                    html += `❌ 无法识别意图\n`;
+                    html += `原因: ${data.reason}\n`;
+                    html += `建议: ${data.suggestion}`;
+                } else if (data.intent === 'uncertain') {
+                    html += `⚠️ 意图模糊 (置信度: ${(data.confidence*100).toFixed(0)}%)\n`;
+                    html += `关键词: ${data.keywords.join(', ')}\n\n`;
+                    html += `建议:\n`;
+                    data.suggestions.forEach((s, i) => {
+                        html += `  ${i+1}. ${s.intent} - ${s.reason}\n`;
+                    });
+                    html += `\n需要更多信息`;
+                } else {
+                    html += `✅ 意图: ${data.intent_name}\n`;
+                    html += `Intent ID: ${data.intent}\n`;
+                    html += `置信度: ${(data.confidence*100).toFixed(0)}%\n`;
+                    html += `关键词: ${data.keywords.join(', ')}\n`;
+                    if (data.reasoning) {
+                        html += `理由: ${data.reasoning}`;
+                    }
+                }
+            } else {
+                html += JSON.stringify(data, null, 2);
+            }
+
+            document.getElementById('result').innerHTML = html;
+        }
+
+        function clearResult() {
+            document.getElementById('result').innerHTML = '等待输入...';
+            document.getElementById('inputText').value = '';
+        }
+    </script>
+</body>
+</html>

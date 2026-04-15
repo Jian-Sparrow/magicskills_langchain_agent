@@ -33,12 +33,10 @@ COPY workspace/skills/allskills/intent-recognition /app/workspace/skills/allskil
 COPY workspace/AGENTS.md /app/workspace/AGENTS.md
 
 # Install skill dependencies
-RUN pip install --no-cache-dir -r /app/workspace/skills/allskills/intent-recognition/requirements.txt
+RUN pip install --no-cache-dir -r /app/workspace/skills/allskills/intent-recognition/scripts/requirements.txt
 
-# Ensure symbolic link exists for skill execution
-RUN cd /app/workspace/skills/allskills/intent-recognition && \
-    test -e intent-recognition || ln -s intent_recognition.py intent-recognition && \
-    chmod +x intent_recognition.py
+# Ensure skill script is executable
+RUN chmod +x /app/workspace/skills/allskills/intent-recognition/scripts/intent_recognition.py
 
 # Set proper permissions
 RUN chown -R magicskills:magicskills /app/workspace
